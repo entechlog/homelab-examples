@@ -5,5 +5,7 @@ services:
       # bind to all interfaces so the external proxy can reach it
       PROXY_HTTP_ADDR: "0.0.0.0:9200"
     ports:
-      # expose only on localhost — Cloudflare Tunnel connects here
-      - "127.0.0.1:9200:9200"
+      # When cloudflared runs as a Docker container, use the host LAN IP
+      # so it can reach OpenCloud. Set HOST_IP in .env.
+      # When cloudflared runs as a system service, 127.0.0.1 is sufficient.
+      - "${HOST_IP:-127.0.0.1}:9200:9200"

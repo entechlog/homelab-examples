@@ -13,8 +13,8 @@ Internet
 Cloudflare Edge
    │  Encrypted tunnel (outbound only — no open ports on your server)
    ▼
-cloudflared daemon  (runs on your home server)
-   └─► http://127.0.0.1:9200  →  OpenCloud
+cloudflared  (system service or Docker container on your home server)
+   └─► http://<HOST_IP>:9200  →  OpenCloud
 ```
 
 ---
@@ -58,6 +58,7 @@ OC_DEFAULT_QUOTA=53687091200
 
 | Variable | Description |
 |---|---|
+| `HOST_IP` | Host LAN IP — required when `cloudflared` runs as a Docker container (e.g. `192.168.0.180`). Omit if `cloudflared` runs as a system service (defaults to `127.0.0.1`) |
 | `OC_DOMAIN` | Your public domain (must match Cloudflare Tunnel route) |
 | `INITIAL_ADMIN_PASSWORD` | Admin password — set before first start, cannot change via env after |
 | `PROXY_TLS` | `false` for Cloudflare Tunnel, `true` for local testing |
@@ -100,6 +101,10 @@ docker compose down -v && docker compose up -d
 
 ### 4. Set up Cloudflare Tunnel
 
+> **Important — `localhost` vs host IP:**
+> If `cloudflared` runs as a **system service**, it shares the host network and can reach `localhost:9200`.
+> If `cloudflared` runs as a **Docker container**, `localhost` inside the container refers to the container itself — not the host. You must use the host's LAN IP instead (e.g. `192.168.0.180:9200`). Set `HOST_IP` in `.env` so the port is bound to the correct interface.
+
 #### Option A — Zero Trust dashboard (recommended for first time)
 
 1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com) → **Networks → Tunnels**
@@ -118,7 +123,9 @@ sudo systemctl enable --now cloudflared
 
 | Subdomain | Domain | Type | URL |
 |---|---|---|---|
-| `cloud` | `yourdomain.com` | HTTP | `localhost:9200` |
+| `cloud` | `yourdomain.com` | HTTP | `http://<HOST_IP>:9200` |
+
+Replace `<HOST_IP>` with `localhost` (system service) or your server's LAN IP (Docker container).
 
 #### Option B — Config file (reproducible / GitOps)
 
@@ -130,7 +137,7 @@ credentials-file: /etc/cloudflared/<YOUR_TUNNEL_ID>.json
 
 ingress:
   - hostname: cloud.yourdomain.com
-    service: http://localhost:9200
+    service: http://<HOST_IP>:9200    # localhost (system service) or LAN IP (Docker)
   - service: http_status:404
 ```
 
@@ -172,10 +179,28 @@ To pin a specific version, set `OC_DOCKER_TAG=x.y.z` in `.env`.
 
 ```bash
 docker compose logs -f              # View logs
-docker compose down                 # Stop
-docker compose down -v              # Stop and remove volumes (destructive)
+docker compose down                 # Stop (safe — all data preserved)
+docker compose up -d                # Start (picks up where it left off)
 docker compose exec opencloud sh    # Shell into the container
-sudo systemctl status cloudflared   # Check tunnel status
+sudo systemctl status cloudflared   # Check tunnel status (Linux system service)
+```
+
+### Full reset (destroy all data and reinitialize)
+
+Use this only when you want to start completely fresh (e.g. changing `OC_DOMAIN`).
+
+> **Warning:** Never use `docker compose down -v` by itself. The `-v` flag deletes the config volume (which holds internal system passwords) but leaves `OC_DATA_DIR` intact (it's a bind mount). This mismatch causes `LDAP Invalid Credentials` errors on the next start. Always clean both together:
+
+```bash
+# Linux
+docker compose down -v
+rm -rf /path/to/your/OC_DATA_DIR/*
+docker compose up -d
+
+# Windows (PowerShell)
+docker compose down -v
+Remove-Item -Path "C:\path\to\your\OC_DATA_DIR\*" -Recurse -Force
+docker compose up -d
 ```
 
 ---
