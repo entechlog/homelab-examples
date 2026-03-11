@@ -1,0 +1,203 @@
+##############################################################################
+# Secrets & credentials
+##############################################################################
+.env
+.env.local
+.env.*.local
+*.secret
+*.secrets
+secrets/
+credentials/
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+# Exception: example/template files are safe to commit
+!*.example
+!*.sample
+!*.template
+
+##############################################################################
+# OpenCloud runtime data
+##############################################################################
+opencloud/data/
+
+##############################################################################
+# Claude Code
+##############################################################################
+.claude/
+# If you want to allow CLAUDE.md project instructions, uncomment:
+# !.claude/CLAUDE.md
+
+##############################################################################
+# OS generated files
+##############################################################################
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+##############################################################################
+# Editors & IDEs
+##############################################################################
+# VS Code
+.vscode/
+*.code-workspace
+# JetBrains (IntelliJ, GoLand, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+Session.vim
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+# Eclipse
+.classpath
+.project
+.settings/
+.loadpath
+
+##############################################################################
+# Shell & terminal history / config
+##############################################################################
+.bash_history
+.zsh_history
+.zsh_sessions/
+.node_repl_history
+.python_history
+
+##############################################################################
+# Package managers & build artifacts
+##############################################################################
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnp.*
+.pnp.js
+dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+.eggs/
+.tox/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Go
+*.test
+*.out
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ansible
+*.retry
+.vault_pass
+vault_pass.txt
+
+##############################################################################
+# Docker
+##############################################################################
+# Local override files (contain host-specific or secret overrides)
+docker-compose.override.yml
+docker-compose.override.yaml
+# Docker contexts and sensitive socket paths
+.docker/contexts/
+
+##############################################################################
+# Logs & temporary files
+##############################################################################
+*.log
+*.log.*
+logs/
+tmp/
+temp/
+.tmp/
+*.tmp
+*.bak
+*.backup
+*.orig
+*.rej
+*.patch
+core
+core.*
+
+##############################################################################
+# Kubernetes / Helm
+##############################################################################
+kubeconfig
+*.kubeconfig
+.kube/
+# Helm
+charts/*/charts/
+*.tgz
