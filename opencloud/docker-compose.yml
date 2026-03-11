@@ -1,0 +1,79 @@
+---
+# Reusable logging config — prevents unbounded disk usage
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  opencloud:
+    image: ${OC_DOCKER_IMAGE:-opencloudeu/opencloud}:${OC_DOCKER_TAG:-latest}
+    # changelog: https://github.com/opencloud-eu/opencloud/tree/main/changelog
+    # release notes: https://docs.opencloud.eu/opencloud_release_notes.html
+    user: ${OC_CONTAINER_UID_GID:-1000:1000}
+    networks:
+      opencloud-net:
+    entrypoint:
+      - /bin/sh
+    command: ["-c", "opencloud init || true; opencloud server"]
+    environment:
+      OC_ADD_RUN_SERVICES: "${START_ADDITIONAL_SERVICES:-}"
+      OC_URL: https://${OC_DOMAIN:-cloud.opencloud.test}
+      OC_LOG_LEVEL: ${LOG_LEVEL:-warn}
+      OC_LOG_COLOR: "${LOG_PRETTY:-false}"
+      OC_LOG_PRETTY: "${LOG_PRETTY:-false}"
+      PROXY_TLS: "${PROXY_TLS:-false}"
+      OC_INSECURE: "${INSECURE:-false}"
+      PROXY_ENABLE_BASIC_AUTH: "${PROXY_ENABLE_BASIC_AUTH:-false}"
+      IDM_CREATE_DEMO_USERS: "${DEMO_USERS:-false}"
+      IDM_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
+      NOTIFICATIONS_SMTP_HOST: "${SMTP_HOST:-}"
+      NOTIFICATIONS_SMTP_PORT: "${SMTP_PORT:-587}"
+      NOTIFICATIONS_SMTP_SENDER: "${SMTP_SENDER:-OpenCloud Notifications <notifications@cloud.opencloud.test>}"
+      NOTIFICATIONS_SMTP_USERNAME: "${SMTP_USERNAME:-}"
+      NOTIFICATIONS_SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      NOTIFICATIONS_SMTP_INSECURE: "${SMTP_INSECURE:-false}"
+      NOTIFICATIONS_SMTP_AUTHENTICATION: "${SMTP_AUTHENTICATION:-plain}"
+      NOTIFICATIONS_SMTP_ENCRYPTION: "${SMTP_TRANSPORT_ENCRYPTION:-none}"
+      FRONTEND_ARCHIVER_MAX_SIZE: "10000000000"
+      FRONTEND_CHECK_FOR_UPDATES: "${CHECK_FOR_UPDATES:-true}"
+      PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
+      OC_PASSWORD_POLICY_BANNED_PASSWORDS_LIST: banned-password-list.txt
+      OC_SHARING_PUBLIC_SHARE_MUST_HAVE_PASSWORD: "${OC_SHARING_PUBLIC_SHARE_MUST_HAVE_PASSWORD:-true}"
+      OC_SHARING_PUBLIC_WRITEABLE_SHARE_MUST_HAVE_PASSWORD: "${OC_SHARING_PUBLIC_WRITEABLE_SHARE_MUST_HAVE_PASSWORD:-false}"
+      OC_PASSWORD_POLICY_DISABLED: "${OC_PASSWORD_POLICY_DISABLED:-false}"
+      OC_PASSWORD_POLICY_MIN_CHARACTERS: "${OC_PASSWORD_POLICY_MIN_CHARACTERS:-8}"
+      OC_PASSWORD_POLICY_MIN_LOWERCASE_CHARACTERS: "${OC_PASSWORD_POLICY_MIN_LOWERCASE_CHARACTERS:-1}"
+      OC_PASSWORD_POLICY_MIN_UPPERCASE_CHARACTERS: "${OC_PASSWORD_POLICY_MIN_UPPERCASE_CHARACTERS:-1}"
+      OC_PASSWORD_POLICY_MIN_DIGITS: "${OC_PASSWORD_POLICY_MIN_DIGITS:-1}"
+      OC_PASSWORD_POLICY_MIN_SPECIAL_CHARACTERS: "${OC_PASSWORD_POLICY_MIN_SPECIAL_CHARACTERS:-1}"
+      OC_DEFAULT_LANGUAGE: "${DEFAULT_LANGUAGE:-en}"
+      # Default quota per user (in bytes). 50 GB = 53687091200
+      GRAPH_SPACES_DEFAULT_QUOTA: "${OC_DEFAULT_QUOTA:-53687091200}"
+    volumes:
+      - ./config/opencloud/csp.yaml:/etc/opencloud/csp.yaml
+      - ./config/opencloud/banned-password-list.txt:/etc/opencloud/banned-password-list.txt
+      - opencloud-config:/etc/opencloud
+      - ${OC_DATA_DIR:-opencloud-data}:/var/lib/opencloud
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "opencloud", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+volumes:
+  opencloud-config:
+  opencloud-data:
+
+networks:
+  opencloud-net:

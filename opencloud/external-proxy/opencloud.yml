@@ -1,0 +1,9 @@
+---
+services:
+  opencloud:
+    environment:
+      # bind to all interfaces so the external proxy can reach it
+      PROXY_HTTP_ADDR: "0.0.0.0:9200"
+    ports:
+      # expose only on localhost — Cloudflare Tunnel connects here
+      - "127.0.0.1:9200:9200"
