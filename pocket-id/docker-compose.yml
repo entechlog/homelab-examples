@@ -1,0 +1,34 @@
+---
+# Reusable logging config — prevents unbounded disk usage
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  pocket-id:
+    image: ghcr.io/pocket-id/pocket-id:v2
+    container_name: pocket-id
+    env_file: .env
+    networks:
+      pocket-id-net:
+    volumes:
+      - ${POCKET_ID_DATA_DIR:-./data}:/app/data
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/app/pocket-id", "healthcheck"]
+      interval: 1m30s
+      timeout: 5s
+      retries: 2
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+networks:
+  pocket-id-net:

@@ -51,8 +51,25 @@ services:
       OC_DEFAULT_LANGUAGE: "${DEFAULT_LANGUAGE:-en}"
       # Default quota per user (in bytes). 50 GB = 53687091200
       GRAPH_SPACES_DEFAULT_QUOTA: "${OC_DEFAULT_QUOTA:-53687091200}"
+      # ── External OIDC (optional — leave blank to use built-in IDP) ──
+      OC_OIDC_ISSUER: "${OC_OIDC_ISSUER:-}"
+      OC_EXCLUDE_RUN_SERVICES: "${OC_EXCLUDE_RUN_SERVICES:-}"
+      WEB_OIDC_CLIENT_ID: "${WEB_OIDC_CLIENT_ID:-}"
+      PROXY_OIDC_REWRITE_WELLKNOWN: "${PROXY_OIDC_REWRITE_WELLKNOWN:-false}"
+      PROXY_USER_OIDC_CLAIM: "${PROXY_USER_OIDC_CLAIM:-}"
+      PROXY_USER_CS3_CLAIM: "${PROXY_USER_CS3_CLAIM:-}"
+      PROXY_AUTOPROVISION_ACCOUNTS: "${PROXY_AUTOPROVISION_ACCOUNTS:-false}"
+      PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD: "${PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD:-}"
+      WEB_OIDC_SCOPE: "${WEB_OIDC_SCOPE:-openid profile email}"
+      WEB_OIDC_POST_LOGOUT_REDIRECT_URI: "${WEB_OIDC_POST_LOGOUT_REDIRECT_URI:-}"
+      PROXY_ROLE_ASSIGNMENT_DRIVER: "${PROXY_ROLE_ASSIGNMENT_DRIVER:-}"
+      GRAPH_ASSIGN_DEFAULT_USER_ROLE: "${GRAPH_ASSIGN_DEFAULT_USER_ROLE:-true}"
+      # IDP domain for CSP — must match your OIDC provider domain so the
+      # browser allows redirects. Used in config/opencloud/csp.yaml.
+      IDP_DOMAIN: "${IDP_DOMAIN:-}"
     volumes:
       - ./config/opencloud/csp.yaml:/etc/opencloud/csp.yaml
+      - ./config/opencloud/proxy.yaml:/etc/opencloud/proxy.yaml
       - ./config/opencloud/banned-password-list.txt:/etc/opencloud/banned-password-list.txt
       - opencloud-config:/etc/opencloud
       - ${OC_DATA_DIR:-opencloud-data}:/var/lib/opencloud
