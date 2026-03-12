@@ -8,13 +8,13 @@ Self-hosted [OpenCloud](https://opencloud.eu) file hosting on a home server, exp
 
 ```
 Internet
-   │  HTTPS (TLS terminated by Cloudflare)
-   ▼
+   |  HTTPS (TLS terminated by Cloudflare)
+   v
 Cloudflare Edge
-   │  Encrypted tunnel (outbound only — no open ports on your server)
-   ▼
-cloudflared daemon  (runs on your home server)
-   └─► http://127.0.0.1:9200  →  OpenCloud
+   |  Encrypted tunnel (outbound only — no open ports on your server)
+   v
+cloudflared  (system service or Docker container on your home server)
+   +-- http://<HOST_IP>:9200  -->  OpenCloud
 ```
 
 ---
@@ -51,17 +51,18 @@ OC_DOMAIN=cloud.yourdomain.com
 INITIAL_ADMIN_PASSWORD=YourStrongPasswordHere
 
 # Linux: /mnt/external-drive/opencloud (must be owned by 1000:1000)
-# Windows: D:/opencloud-data (use forward slashes)
+# Windows (Docker Desktop): use a WSL2 path — see note below
 OC_DATA_DIR=/mnt/external-drive/opencloud
 OC_DEFAULT_QUOTA=53687091200
 ```
 
 | Variable | Description |
 |---|---|
+| `HOST_IP` | Host LAN IP — required when `cloudflared` runs as a Docker container (e.g. `192.168.0.180`). Omit if `cloudflared` runs as a system service (defaults to `127.0.0.1`) |
 | `OC_DOMAIN` | Your public domain (must match Cloudflare Tunnel route) |
 | `INITIAL_ADMIN_PASSWORD` | Admin password — set before first start, cannot change via env after |
 | `PROXY_TLS` | `false` for Cloudflare Tunnel, `true` for local testing |
-| `OC_DATA_DIR` | Where user files are stored — point to your external drive. Linux: must be owned by `1000:1000` (`sudo chown -R 1000:1000 /path`). Windows: use forward slashes (e.g. `D:/opencloud-data`) |
+| `OC_DATA_DIR` | Where user files are stored — see [storage notes](#storage-notes) below |
 | `OC_DEFAULT_QUOTA` | Per-user storage limit in bytes (50 GB = 53687091200, 0 = unlimited) |
 
 ### 2. Test locally
@@ -100,10 +101,14 @@ docker compose down -v && docker compose up -d
 
 ### 4. Set up Cloudflare Tunnel
 
+> **Important — `localhost` vs host IP:**
+> If `cloudflared` runs as a **system service**, it shares the host network and can reach `localhost:9200`.
+> If `cloudflared` runs as a **Docker container**, `localhost` inside the container refers to the container itself — not the host. You must use the host's LAN IP instead (e.g. `192.168.0.180:9200`). Set `HOST_IP` in `.env` so the port is bound to the correct interface.
+
 #### Option A — Zero Trust dashboard (recommended for first time)
 
-1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com) → **Networks → Tunnels**
-2. Create a tunnel → choose **Cloudflared** → name it (e.g. `homelab`)
+1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com) > **Networks > Tunnels**
+2. Create a tunnel > choose **Cloudflared** > name it (e.g. `homelab`)
 3. Copy the tunnel token
 4. Install `cloudflared` on your server:
 
@@ -118,7 +123,9 @@ sudo systemctl enable --now cloudflared
 
 | Subdomain | Domain | Type | URL |
 |---|---|---|---|
-| `cloud` | `yourdomain.com` | HTTP | `localhost:9200` |
+| `cloud` | `yourdomain.com` | HTTP | `http://<HOST_IP>:9200` |
+
+Replace `<HOST_IP>` with `localhost` (system service) or your server's LAN IP (Docker container).
 
 #### Option B — Config file (reproducible / GitOps)
 
@@ -130,7 +137,7 @@ credentials-file: /etc/cloudflared/<YOUR_TUNNEL_ID>.json
 
 ingress:
   - hostname: cloud.yourdomain.com
-    service: http://localhost:9200
+    service: http://<HOST_IP>:9200    # localhost (system service) or LAN IP (Docker)
   - service: http_status:404
 ```
 
@@ -144,6 +151,89 @@ Open `https://cloud.yourdomain.com` in your browser.
 
 - **Username:** `admin`
 - **Password:** the value you set for `INITIAL_ADMIN_PASSWORD`
+
+---
+
+## Storage notes
+
+### Linux
+
+Point `OC_DATA_DIR` to your external drive. The directory must be owned by `1000:1000`:
+
+```bash
+sudo chown -R 1000:1000 /mnt/external-drive/opencloud
+```
+
+### Windows (Docker Desktop)
+
+OpenCloud requires extended attributes (xattrs) for file sharing and permissions. **NTFS does not support xattrs** — sharing will fail with `invalid argument` errors if you use a Windows path like `D:/opencloud-data`.
+
+Instead, create the data directory inside the Docker Desktop WSL2 distro:
+
+```powershell
+wsl -d docker-desktop mkdir -p /mnt/host-data/opencloud
+wsl -d docker-desktop chown -R 1000:1000 /mnt/host-data/opencloud
+```
+
+Then set in `.env`:
+
+```dotenv
+OC_DATA_DIR=/mnt/host-data/opencloud
+```
+
+This directory persists across Docker restarts (it's a bind mount, not a Docker volume).
+
+---
+
+## External OIDC / SSO (optional)
+
+By default, OpenCloud uses its built-in identity provider. To use an external OIDC provider (e.g. [Pocket ID](https://pocket-id.org)), uncomment the OIDC section in `.env`:
+
+```dotenv
+OC_OIDC_ISSUER=https://pocket-id.yourdomain.com
+OC_EXCLUDE_RUN_SERVICES=idp
+WEB_OIDC_CLIENT_ID=<client-id-from-oidc-provider>
+PROXY_OIDC_REWRITE_WELLKNOWN=true
+PROXY_USER_OIDC_CLAIM=preferred_username
+PROXY_USER_CS3_CLAIM=username
+PROXY_AUTOPROVISION_ACCOUNTS=true
+PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD=none
+WEB_OIDC_SCOPE=openid profile email groups
+WEB_OIDC_POST_LOGOUT_REDIRECT_URI=https://cloud.yourdomain.com
+PROXY_ROLE_ASSIGNMENT_DRIVER=oidc
+GRAPH_ASSIGN_DEFAULT_USER_ROLE=true
+IDP_DOMAIN=pocket-id.yourdomain.com
+```
+
+Then do a full reset (the IDP config is baked in on first start):
+
+```bash
+docker compose down -v
+rm -rf /path/to/your/OC_DATA_DIR/*
+docker compose up -d
+```
+
+### Role mapping
+
+OpenCloud maps OIDC group claims to roles via `config/opencloud/proxy.yaml`. Edit the `claim_value` entries to match your OIDC provider's group slugs:
+
+```yaml
+role_assignment:
+  driver: oidc
+  oidc_role_mapper:
+    role_claim: groups
+    role_mapping:
+      - role_name: admin
+        claim_value: your_admin_group_slug
+      - role_name: user
+        claim_value: your_user_group_slug
+```
+
+> **Note:** Pocket ID uses the group **slug** (lowercase, underscores) in OIDC claims, not the display name.
+
+To switch back to the built-in IDP, comment out the OIDC variables and do the same full reset.
+
+See [../pocket-id/](../pocket-id/) for Pocket ID setup and the [OpenCloud + Pocket ID integration guide](https://github.com/orgs/opencloud-eu/discussions/1018) for details.
 
 ---
 
@@ -172,10 +262,28 @@ To pin a specific version, set `OC_DOCKER_TAG=x.y.z` in `.env`.
 
 ```bash
 docker compose logs -f              # View logs
-docker compose down                 # Stop
-docker compose down -v              # Stop and remove volumes (destructive)
+docker compose down                 # Stop (safe — all data preserved)
+docker compose up -d                # Start (picks up where it left off)
 docker compose exec opencloud sh    # Shell into the container
-sudo systemctl status cloudflared   # Check tunnel status
+sudo systemctl status cloudflared   # Check tunnel status (Linux system service)
+```
+
+### Full reset (destroy all data and reinitialize)
+
+Use this only when you want to start completely fresh (e.g. changing `OC_DOMAIN` or switching IDP).
+
+> **Warning:** Never use `docker compose down -v` by itself. The `-v` flag deletes the config volume (which holds internal system passwords) but leaves `OC_DATA_DIR` intact (it's a bind mount). This mismatch causes `LDAP Invalid Credentials` errors on the next start. Always clean both together:
+
+```bash
+# Linux
+docker compose down -v
+rm -rf /path/to/your/OC_DATA_DIR/*
+docker compose up -d
+
+# Windows (PowerShell) — if using WSL2 path
+docker compose down -v
+wsl -d docker-desktop rm -rf /mnt/host-data/opencloud/*
+docker compose up -d
 ```
 
 ---
