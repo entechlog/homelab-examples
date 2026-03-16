@@ -1,11 +1,13 @@
 # homelab-examples
 
-Docker Compose setups for self-hosted homelab services, exposed securely via [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (no open inbound ports required).
+Docker Compose setups and configurations for self-hosted homelab services.
 
 ## Services
 
 | Service | Description | Directory |
 |---|---|---|
+| [Home Assistant](https://www.home-assistant.io/) | Smart home automation — dashboards, themes, and configurations | [`home-assistant/`](home-assistant/) |
+| [Immich](https://immich.app/) | Self-hosted photo & video management with external library support | [`immich/`](immich/) |
 | [OpenCloud](https://opencloud.eu) | Self-hosted file hosting (like ownCloud/Nextcloud) | [`opencloud/`](opencloud/) |
 | [Pocket ID](https://pocket-id.org) | Lightweight OIDC identity provider with passkey auth | [`pocket-id/`](pocket-id/) |
 
