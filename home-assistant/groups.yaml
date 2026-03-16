@@ -1,0 +1,15 @@
+all_lights:
+  name: All Lights
+  entities:
+    - switch.lr_temple_lamp
+    - switch.br_table_lamp_r
+    - switch.br_table_lamp_l
+    - switch.gr_motion_light
+    
+all_doors:
+  name: All Doors
+  entities:
+    - binary_sensor.front_door
+    - binary_sensor.back_door
+    - binary_sensor.garage_door
+    - binary_sensor.basement_door

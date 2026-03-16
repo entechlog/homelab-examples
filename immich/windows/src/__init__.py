@@ -1,0 +1,1 @@
+"""Immich album management scripts."""

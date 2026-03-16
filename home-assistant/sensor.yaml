@@ -1,0 +1,49 @@
+- platform: template
+  sensors:
+  
+    weekday:
+      friendly_name: Weekday
+      value_template: >
+       {% set weekday = now().weekday() %} 
+       {% if (weekday == 0) %} Monday 
+       {% elif (weekday == 1) %} Tuesday 
+       {% elif (weekday == 2) %} Wednesday
+       {% elif (weekday == 3) %} Thursday 
+       {% elif (weekday == 4) %} Friday
+       {% elif (weekday == 5) %} Saturday 
+       {% elif (weekday == 6) %} Sunday
+       {% endif %}
+    
+    month:
+      friendly_name: Month
+      value_template: >
+        {% set weekday = now().month %} 
+        {% if (weekday == 1) %} January 
+        {% elif (weekday == 2) %} February 
+        {% elif (weekday == 3) %} March 
+        {% elif (weekday == 4) %} April  
+        {% elif (weekday == 5) %} May
+        {% elif (weekday == 6) %} June 
+        {% elif (weekday == 7) %} July 
+        {% elif (weekday == 8) %} August 
+        {% elif (weekday == 9) %} September 
+        {% elif (weekday == 10) %} October 
+        {% elif (weekday == 11) %} November 
+        {% elif (weekday == 12) %} December 
+        {% endif %}
+    
+    lights_on_count:
+      friendly_name: 'Lights on count'
+      icon_template: mdi:lightbulb-group
+      value_template: "{{ expand('group.all_lights') | selectattr('state', 'eq', 'on') | list | count }}"
+
+    current_time_12h:
+      friendly_name: "Current Time (12-hour)"
+      icon_template: mdi:clock
+      value_template: "{{ now().strftime('%I:%M %p') }}"
+
+    doors_open_count:
+      friendly_name: 'Doors Open Count'
+      icon_template: mdi:door-open
+      value_template: "{{ expand('group.all_doors') | selectattr('state', 'eq', 'on') | list | count }}"
+
